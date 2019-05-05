@@ -41,7 +41,7 @@ Modules in a folder
 external_stylesheets = [
     # 'https://codepen.io/chriddyp/pen/bWLwgP.css',
     # dbc.themes.BOOTSTRAP
-    dash_bootstrap_components.themes.LUX
+    dbc.themes.LUX
 ]
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 # We need to suppress, as we have not generated the element IDs for the callbacks we will initiate
@@ -94,6 +94,28 @@ textarea_style = {
     'white-space': 'pre-wrap'
 }
 
+stock_values = {
+    'open':     'open',
+    'close':    'close',
+    'high':     'high',
+    'low':      'low',
+    'volume':   'volume',
+}
+
+stock_tickers = {
+    'Coke':         'COKE',
+    'Tesla':        'TSLA',
+    'Apple':        'AAPL',
+    'Qualcomm':     'QCOM',
+
+    'S&P 500': '^GSPC',
+    'Russel 2000': '^RUT',
+    'NASDAQ Composite Index': 'NASDAQ:^IXIC',
+    'Dow Jones Industrial Average': '^DJI',
+
+    'Apple - Qualcomm': 'AAPL-QCOM'
+}
+
 '''
 
                 INITIAL APP LAYOUT
@@ -102,28 +124,6 @@ textarea_style = {
 
 app.layout = html.Div(children=[
 
-    ### Header section
-    html.H2(children='Hello, Nayalytics! Exploratory demo below.'),
-    html.H3(children=f'Last updated: {dt.now()}'),
-    html.Div([
-        '''This is built using ''',
-        html.A('Dash\n', href="https://plot.ly/products/dash/")
-    ]),
-
-    html.H1('Stock Tickers'),
-    dcc.Dropdown(
-        id='my-dropdown',
-        options=[
-            {'label': 'Coke', 'value': 'COKE'},
-            {'label': 'Tesla', 'value': 'TSLA'},
-            {'label': 'Apple', 'value': 'AAPL'}
-        ],
-        value='COKE'
-    ),
-    dcc.Graph(id='my-graph'),
-
-
-    html.Hr(),
 
     ### Link section
     # represents the URL bar, doesn't render anything
@@ -133,15 +133,47 @@ app.layout = html.Div(children=[
     dbc.Container([
         dbc.Card([
             dbc.CardBody([
+                ### Header section
+                html.H2(['Hello and welcome to my exploratory demo of Dash!']),
+                html.Div([
+                    'Built by Andrew Parsadayan',
+                    html.Br(),
+                    'Contact: ',
+                    html.A(
+                        'zed_oud@mac.com',
+                        href="mailto:zed_oud@mac.com?Subject=Hello%20from%20Dash",
+                        target="_top"  # for "full body of the window" or "_blank" for new tab/window
+                    ),
+                    ' (from the MobileMe days)'
+                ]),
+                html.Div([
+                    '''This is built using ''',
+                    html.A('Dash\n', href="https://plot.ly/products/dash/")
+                ]),
+                html.Div([f'Last updated: {dt.now()}']),
+                html.Div([f'MoTD: Try the "stocks" page!']),
+            ]),
+        ]),
+        dbc.Card([
+            dbc.CardBody([
                 # TODO : Format "Navigate to..."
                 dcc.Link('Navigate to Home', href='/'),
                 html.Br(),
                 dcc.Link('Navigate to config page.', href='/config'),
                 html.Br(),
+                dcc.Link('Navigate to stocks page.', href='/stocks#page-content'),
+                html.Br(),
+                html.Br(),
+                '''Navigate to imported functions:''',
                 html.Br(),
                 *[
                     a
-                    for b in [(dcc.Link('Navigate to {} page.'.format(page['name']), href=page['path_start']), html.Br()) for page in dfuncs.values()]
+                    for b in [(
+                        dcc.Link(f'{page["name"]} page.', href=page['path_start']+'#page-content'),
+                        html.Br()
+                    )
+                        for page in dfuncs.values()
+                    ]
                     for a in b
                 ],
             ])
@@ -162,12 +194,11 @@ app.layout = html.Div(children=[
 '''
 
 
-@app.callback(Output('my-graph', 'figure'), [Input('my-dropdown', 'value')])
-def update_graph(selected_dropdown_value):
-    # TODO: pickling thread-safe? probably?
-    data_source = 'robinhood'
+def get_fin_df(ticker):
+    data_source = 'av-daily'  # 'robinhood'
     dirname = 'pickle_cache'
-    pname = f'{dirname}/{data_source}-{selected_dropdown_value}.pkl.xz'
+    pname = f'{dirname}/{data_source}-{ticker}.pkl.xz'
+    print(f'attempting: {pname}')
     if not isdir(dirname):
         from os import mkdir
         mkdir(dirname)
@@ -177,18 +208,48 @@ def update_graph(selected_dropdown_value):
         print('retrieved from cache:', pname)
     else:
         df = web.DataReader(
-            selected_dropdown_value, data_source=data_source,
-            # start=dt(2017, 1, 1), end=dt.now()
+            ticker, data_source=data_source,
+            start=dt(2016, 1, 1), end=dt.now(),
+            access_key='FGSVWS9KZYCDUREQ'
         )
         df.to_pickle(pname)
         print('created cache:', pname)
+    return df
 
-    return {
-        'data': [{
-            'x': df.index.levels[1],
-            'y': df.close_price
-        }]
-    }
+
+def get_complex_fin_df(ticker):
+    if '-' in ticker:
+        df1, df2 = [get_fin_df(t) for t in ticker.split('-')]
+        df = pd.DataFrame()
+        for k, v in stock_values.items():
+            df[v] = df1[v] - df2[v]
+    else:
+        df = get_fin_df(ticker)
+    return df
+
+
+@app.callback(Output('my-graph', 'figure'),
+              [
+                  Input('stock-dropdown-ticker', 'value'),
+                  Input('stock-dropdown-metric', 'value'),
+                  Input('stock-dropdown-normalize', 'value')
+              ])
+def update_graph(dropdown_tickers, dropdown_metric, dropdown_normalize):
+    # TODO: pickling thread-safe? probably?
+    fig = {'data': []}
+    if dropdown_normalize:
+        dfn = get_complex_fin_df(dropdown_normalize)
+    for ticker in dropdown_tickers:
+        df = get_complex_fin_df(ticker)
+        if dropdown_normalize:
+            for k, v in stock_values.items():
+                df[v] = df[v] / dfn[v]
+        fig['data'].append({
+            'x': df.index,
+            'y': df[dropdown_metric],
+            'name': ticker
+        })
+    return fig
 
 
 '''
@@ -278,8 +339,47 @@ for file, page in dfuncs.items():
 @app.callback(dash.dependencies.Output('page-content', 'children'),
               [dash.dependencies.Input('url', 'pathname')])
 def display_page(pathname):
+    pathname = pathname.split('#')[0]
     if pathname == '/config':
         pass
+    elif pathname == '/stocks':
+        return dbc.Container([
+            dbc.Card([
+                dbc.CardBody([
+                    html.H4('Stock Tickers'),
+                    dcc.Dropdown(
+                        id='stock-dropdown-ticker',
+                        options=[
+                            {'label': k, 'value': v} for k, v in stock_tickers.items()
+                        ],
+                        value=['COKE', 'TSLA'],
+                        multi=True
+                    )
+                ]),
+                dbc.CardBody([
+                    html.H4('Stock Values'),
+                    dcc.Dropdown(
+                        id='stock-dropdown-metric',
+                        options=[
+                            {'label': k, 'value': v} for k, v in stock_values.items()
+                        ],
+                        value='close'
+                    )
+                ]),
+                dbc.CardBody([
+                    html.H4('Normalize to...'),
+                    dcc.Dropdown(
+                        id='stock-dropdown-normalize',
+                        options=[
+                            {'label': k, 'value': v} for k, v in stock_tickers.items()
+                        ]
+                    )
+                ]),
+                dbc.CardBody([
+                    dcc.Graph(id='my-graph'),
+                ])
+            ])
+        ])
     else:
         for module in dcallbacks:
             # if pathname.startswith(dfuncs[module]['path_start']):
@@ -298,4 +398,4 @@ def display_page(pathname):
 '''
 
 if __name__ == '__main__':
-    app.run_server(debug=False)
+    app.run_server(debug=True)

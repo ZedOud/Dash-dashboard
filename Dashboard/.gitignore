@@ -6,3 +6,6 @@ unused_modules
 pickle_cache
 cache_directory
 init_data.h5
+/.init_data.h5.icloud
+/cnn_cs50.py
+/nest_egg.py

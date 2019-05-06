@@ -159,7 +159,8 @@ app.layout = html.Div(children=[
                 ]),
                 html.Div([
                     '''This is built using ''',
-                    html.A('Dash\n', href="https://plot.ly/products/dash/")
+                    html.A('Dash\n', href="https://plot.ly/products/dash/"),
+                    ''' (written entirely in Python, generating React code served with Flask).'''
                 ]),
                 html.Div([f'Last updated: {dt.now()}']),
                 html.Div([f'MoTD: Try the "stocks" page!']),

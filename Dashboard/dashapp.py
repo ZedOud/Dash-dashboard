@@ -369,7 +369,7 @@ def display_page(pathname, extra_tickers):
 
         try:
             # stock_tickers_temp = {v: v for v in query.split('?')}
-            stock_tickers_temp = {v: v for v in re.sub(r'\s', '', extra_tickers).split(',')}
+            stock_tickers_temp = {v: v for v in re.sub(r'\s', '', extra_tickers).split(',') if v}
             print(stock_tickers_temp)
         except:
             stock_tickers_temp = {}

@@ -172,12 +172,18 @@ app.layout = html.Div(children=[
                 html.Br(),
                 dcc.Link('Navigate to empty page.', href='/empty'),
                 html.Br(),
-                dcc.Link('Navigate to stocks page.', href='/stocks'), ' (Add extra stock tickers)',
-                dcc.Input(id='text-tickers-input', value='LYFT, GOOG', type='text'),
-                ' (comma delimited)',
+                dcc.Link('Navigate to stocks page.', href='/stocks'),
+                    ' (Add extra stock tickers)',
+                    dcc.Input(id='text-tickers-input', value='LYFT, GOOG', type='text'),
+                    ' (comma delimited)',
                 html.Br(),
                 html.Br(),
-                '''Navigate to imported functions:''',
+                '''Navigate to ''',
+                html.A(
+                    'imported functions (code):',
+                    href="https://github.com/ZedOud/Dash-dashboard/tree/master/Dashboard",
+                    target="_blank"
+                ),
                 html.Br(),
                 *[
                     a

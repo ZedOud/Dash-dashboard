@@ -382,7 +382,8 @@ def display_page(pathname, extra_tickers):
                             {'label': k, 'value': v} for k, v in [*stock_tickers.items(), *stock_tickers_temp.items()]
                         ],
                         value=['COKE', 'TSLA'],
-                        multi=True
+                        multi=True,
+                        searchable=False
                     )
                 ]),
                 dbc.CardBody([
@@ -392,7 +393,8 @@ def display_page(pathname, extra_tickers):
                         options=[
                             {'label': k, 'value': v} for k, v in stock_values.items()
                         ],
-                        value='close'
+                        value='close',
+                        searchable=False
                     )
                 ]),
                 dbc.CardBody([
@@ -401,7 +403,8 @@ def display_page(pathname, extra_tickers):
                         id='stock-dropdown-normalize',
                         options=[
                             {'label': k, 'value': v} for k, v in [*stock_tickers.items(), *stock_tickers_temp.items()]
-                        ]
+                        ],
+                        searchable=False
                     )
                 ]),
                 dbc.CardBody([

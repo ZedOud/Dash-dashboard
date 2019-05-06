@@ -11,6 +11,7 @@ from importlib import import_module
 
 from datetime import datetime as dt
 from itertools import zip_longest
+import re
 
 from os.path import isfile, isdir
 import pandas as pd
@@ -108,13 +109,15 @@ stock_tickers = {
     'Apple':        'AAPL',
     'Qualcomm':     'QCOM',
 
-    'S&P 500': '^GSPC',
-    'Russel 2000': '^RUT',
-    'NASDAQ Composite Index': 'NASDAQ:^IXIC',
+    'S&P 500':                      '^GSPC',
+    'Russel 2000':                  '^RUT',
+    'NASDAQ Composite Index':       'NASDAQ:^IXIC',
     'Dow Jones Industrial Average': '^DJI',
 
-    'Apple - Qualcomm': 'AAPL-QCOM'
+    'Apple - Qualcomm':             'AAPL-QCOM'
 }
+
+stock_tickers_temp = {}
 
 '''
 
@@ -138,11 +141,19 @@ app.layout = html.Div(children=[
                 html.Div([
                     'Built by Andrew Parsadayan',
                     html.Br(),
+                    'Graduated from Grand Canyon University in the Fall of 2019 with a Bachelors in Computer Science with an emphasis in Big Data',
+                    html.Br(),
+                    html.A(
+                        'Code posted here.',
+                        href="https://github.com/ZedOud/Dash-dashboard/blob/master/Dashboard/dashapp.py",
+                        target="_blank"  # "_top" for "full body of the window" or "_blank" for new tab/window
+                    ),
+                    html.Br(),
                     'Contact: ',
                     html.A(
                         'zed_oud@mac.com',
                         href="mailto:zed_oud@mac.com?Subject=Hello%20from%20Dash",
-                        target="_top"  # for "full body of the window" or "_blank" for new tab/window
+                        target="_top"  # "_top" for "full body of the window" or "_blank" for new tab/window
                     ),
                     ' (from the MobileMe days)'
                 ]),
@@ -159,9 +170,11 @@ app.layout = html.Div(children=[
                 # TODO : Format "Navigate to..."
                 dcc.Link('Navigate to Home', href='/'),
                 html.Br(),
-                dcc.Link('Navigate to config page.', href='/config'),
+                dcc.Link('Navigate to empty page.', href='/empty'),
                 html.Br(),
-                dcc.Link('Navigate to stocks page.', href='/stocks#page-content'),
+                dcc.Link('Navigate to stocks page.', href='/stocks'), ' (Add extra stock tickers)',
+                dcc.Input(id='text-tickers-input', value='LYFT, GOOG', type='text'),
+                ' (comma delimited)',
                 html.Br(),
                 html.Br(),
                 '''Navigate to imported functions:''',
@@ -337,12 +350,22 @@ for file, page in dfuncs.items():
 
 # Link Callback
 @app.callback(dash.dependencies.Output('page-content', 'children'),
-              [dash.dependencies.Input('url', 'pathname')])
-def display_page(pathname):
-    pathname = pathname.split('#')[0]
-    if pathname == '/config':
+              [dash.dependencies.Input('url', 'pathname'),
+               dash.dependencies.Input('text-tickers-input', 'value')])
+def display_page(pathname, extra_tickers):
+    # pathname, *query = [*pathname.split('?'), None]
+    # query.pop()  # eliminates None inserted to prevent tuple unpacking issues
+    if pathname == '/empty':
         pass
     elif pathname == '/stocks':
+        global stock_tickers_temp
+
+        try:
+            # stock_tickers_temp = {v: v for v in query.split('?')}
+            stock_tickers_temp = {v: v for v in re.sub(r'\s', '', extra_tickers).split(',')}
+            print(stock_tickers_temp)
+        except:
+            stock_tickers_temp = {}
         return dbc.Container([
             dbc.Card([
                 dbc.CardBody([
@@ -350,7 +373,7 @@ def display_page(pathname):
                     dcc.Dropdown(
                         id='stock-dropdown-ticker',
                         options=[
-                            {'label': k, 'value': v} for k, v in stock_tickers.items()
+                            {'label': k, 'value': v} for k, v in [*stock_tickers.items(), *stock_tickers_temp.items()]
                         ],
                         value=['COKE', 'TSLA'],
                         multi=True
@@ -371,7 +394,7 @@ def display_page(pathname):
                     dcc.Dropdown(
                         id='stock-dropdown-normalize',
                         options=[
-                            {'label': k, 'value': v} for k, v in stock_tickers.items()
+                            {'label': k, 'value': v} for k, v in [*stock_tickers.items(), *stock_tickers_temp.items()]
                         ]
                     )
                 ]),
